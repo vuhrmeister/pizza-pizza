@@ -1,0 +1,19 @@
+{
+  "name": "pizza-pizza",
+  "version": "1.0.0",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vuhrmeister/pizza-pizza.git"
+  },
+  "author": "Valentin Uhrmeister",
+  "bugs": {
+    "url": "https://github.com/vuhrmeister/pizza-pizza/issues"
+  },
+  "homepage": "https://github.com/vuhrmeister/pizza-pizza#readme",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "standard": "*"
+  }
+}
