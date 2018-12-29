@@ -5,7 +5,7 @@ const routes = {
     post: handlers.login
   },
   logout: {
-    post: handlers.logout
+    delete: handlers.logout
   },
   users: {
     get: handlers.getUser,
