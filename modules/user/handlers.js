@@ -68,11 +68,10 @@ handlers.login = async function ({ request, setStatusCode }) {
 }
 
 handlers.logout = async function ({ request, setStatusCode }) {
-  const { payload } = request
+  const { headers } = request
 
   const validator = new ParamValidator({
-    ...payload,
-    tokenId: request.queryParams.tokenId
+    tokenId: headers['auth-token']
   })
 
   const tokenId = validator.validate('tokenId', {
