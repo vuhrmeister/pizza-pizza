@@ -51,7 +51,7 @@ handlers.login = async function ({ request, setStatusCode }) {
   const tokenData = {
     email,
     tokenId,
-    expires: Date.now() + 1000 * 60 * appConfig.ValidityMinutes
+    expires: Date.now() + 1000 * 60 * appConfig.authTokenValidityMinutes
   }
 
   try {
