@@ -10,7 +10,7 @@ const routes = {
   users: {
     get: handlers.getUser,
     post: handlers.createUser,
-    put: handlers.updateUser,
+    patch: handlers.updateUser,
     delete: handlers.deleteUser
   }
 }
