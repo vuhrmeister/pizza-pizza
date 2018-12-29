@@ -3,7 +3,7 @@ const appConfig = require('../../app-config')
 const Data = require('../../lib/data')
 const helpers = require('../../lib/helpers')
 const { ParamValidator, validations } = require('../../lib/param-validator')
-const authenticate = require('./authenticate')
+const { authorize } = require('./security')
 
 const Users = new Data('users')
 const Tokens = new Data('tokens')
@@ -125,8 +125,8 @@ handlers.getUser = async function ({ request, setStatusCode }) {
     }
   }
 
-  const authenticated = await authenticate(headers['auth-token'], email)
-  if (!authenticated) {
+  const authorized = await authorize(headers['auth-token'], email)
+  if (!authorized) {
     setStatusCode(403)
     return {
       error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
@@ -291,7 +291,7 @@ handlers.updateUser = async function ({ request, setStatusCode }) {
     }
   }
 
-  const authenticated = await authenticate(headers['auth-token'], email)
+  const authenticated = await authorize(headers['auth-token'], email)
   if (!authenticated) {
     setStatusCode(403)
     return {
@@ -358,7 +358,7 @@ handlers.deleteUser = async function ({ request, setStatusCode }) {
     }
   }
 
-  const authenticated = await authenticate(headers['auth-token'], email)
+  const authenticated = await authorize(headers['auth-token'], email)
   if (!authenticated) {
     setStatusCode(403)
     return {
