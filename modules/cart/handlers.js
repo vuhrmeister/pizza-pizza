@@ -53,7 +53,8 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
       validator: menuId => availableMenus.indexOf(menuId) > -1
     })
     validator.validate('quantity', {
-      type: 'number'
+      type: 'number',
+      validator: quantity => quantity > 0
     })
     return validator.isValid()
   })
@@ -71,6 +72,10 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
     quantity: item.quantity || 1
   }))
 
+  const cartObject = {
+    items: cleanedCartItems
+  }
+
   let userId
 
   try {
@@ -87,7 +92,7 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
   } catch (err) {
     if (err.code === 'ENOENT') {
       try {
-        await Carts.create(userId, cleanedCartItems)
+        await Carts.create(userId, cartObject)
         cartJustCreated = true
       } catch (err) {
         console.error('Could not write cart')
@@ -101,7 +106,7 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
 
   if (!cartJustCreated) {
     try {
-      await Carts.update(userId, cleanedCartItems)
+      await Carts.update(userId, cartObject)
     } catch (err) {
       console.error('Could not update cart')
       return setStatusCode(500)
