@@ -3,7 +3,10 @@ const config = {
     port: 3000
   },
   hashingSecret: 'ESohTha9lu7eishuSous',
-  authTokenValidityMinutes: 60
+  authTokenValidityMinutes: 60,
+  stripe: {
+    apiKey: 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'
+  }
 }
 
 module.exports = config
