@@ -26,7 +26,7 @@ handlers.listMenus = async function ({ request, setStatusCode }) {
   }
 
   try {
-    const menus = await menuIds.map(id => Menus.read(id))
+    const menus = menuIds.map(id => Menus.read(id))
     return Promise.all(menus)
   } catch (err) {
     console.log('Could not read menu')
