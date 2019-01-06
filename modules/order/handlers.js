@@ -1,5 +1,6 @@
 const Data = require('../../lib/data')
 const { createRandomString } = require('../../lib/helpers')
+const { Emitter, Events } = require('../events')
 const { authenticate } = require('../user/security')
 const { getUserForAuthToken } = require('../user')
 const { charge } = require('./payment')
@@ -107,6 +108,11 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
     // Don't throw an error. It's not nice that the cart was
     // not cleared, but the order itself was processed just fine.
   }
+
+  Emitter.emit(Events.ORDER_PLACED, {
+    orderId,
+    user
+  })
 
   return {
     orderId,
