@@ -68,6 +68,7 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
         zip: user.zip,
         city: user.city
       },
+      cartItems,
       paymentStatus: 'outstanding'
     }
     await Orders.create(orderId, orderData)
