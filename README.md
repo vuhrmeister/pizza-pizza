@@ -42,3 +42,4 @@ the header of the request. A Token can be acquired from the login endpoint above
 
 - Make URIs more RESTful: e.g. make the id (or email for the user) part of the url (`GET /users/my@email.de`) instead of using a query param.
 - More extensive documentation
+- Improve parameter validation
