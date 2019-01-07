@@ -1,6 +1,7 @@
 const crypto = require('crypto')
 const appConfig = require('../../app-config')
 const Data = require('../../lib/data')
+const HandlerError = require('../../lib/handler-error')
 const helpers = require('../../lib/helpers')
 const { ParamValidator, validations } = require('../../lib/param-validator')
 const { authorize } = require('./security')
@@ -26,10 +27,7 @@ handlers.login = async function ({ request, setStatusCode }) {
   })
 
   if (!validator.isValid()) {
-    setStatusCode(400)
-    return {
-      error: validator.getErrorMessage()
-    }
+    throw new HandlerError(400, validator.getErrorMessage())
   }
 
   let hashedPassword
@@ -41,10 +39,7 @@ handlers.login = async function ({ request, setStatusCode }) {
       throw new Error()
     }
   } catch (err) {
-    setStatusCode(400)
-    return {
-      error: 'Wrong email or password'
-    }
+    throw new HandlerError(400, 'Wrong email or password')
   }
 
   const tokenId = helpers.createRandomString(20)
@@ -57,13 +52,9 @@ handlers.login = async function ({ request, setStatusCode }) {
   try {
     await Tokens.create(tokenId, tokenData)
   } catch (err) {
-    setStatusCode(500)
-    return {
-      error: 'Error creating authentication token'
-    }
+    throw new HandlerError(500)
   }
 
-  setStatusCode(201)
   return tokenData
 }
 
@@ -82,28 +73,19 @@ handlers.logout = async function ({ request, setStatusCode }) {
   })
 
   if (!validator.isValid()) {
-    setStatusCode(400)
-    return {
-      error: validator.getErrorMessage()
-    }
+    throw new HandlerError(400, validator.getErrorMessage())
   }
 
   try {
     await Tokens.read(tokenId)
   } catch (err) {
-    setStatusCode(400)
-    return {
-      error: 'Invalid authentication token'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   try {
     await Tokens.delete(tokenId)
   } catch (err) {
-    setStatusCode(500)
-    return {
-      error: 'Could not delete autentication token'
-    }
+    throw new HandlerError(500, 'Could not delete autentication token')
   }
 }
 
@@ -119,18 +101,12 @@ handlers.getUser = async function ({ request, setStatusCode }) {
   })
 
   if (!validator.isValid()) {
-    setStatusCode(400)
-    return {
-      error: validator.getErrorMessage()
-    }
+    throw new HandlerError(400, validator.getErrorMessage())
   }
 
   const authorized = await authorize(headers['auth-token'], email)
   if (!authorized) {
-    setStatusCode(403)
-    return {
-      error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   try {
@@ -138,10 +114,9 @@ handlers.getUser = async function ({ request, setStatusCode }) {
     delete userDoc.hashedPassword
     return userDoc
   } catch (err) {
-    setStatusCode(404)
-    return {
-      error: 'User does not exists'
-    }
+    // If we come to that place a user with the given email should exist!
+    // Therefore something really unexpected happened.
+    throw new HandlerError(500)
   }
 }
 
@@ -197,22 +172,19 @@ handlers.createUser = async function ({ request, setStatusCode }) {
   })
 
   if (!validator.isValid()) {
-    setStatusCode(400)
-    return {
-      error: validator.getErrorMessage()
-    }
+    throw new HandlerError(400, validator.getErrorMessage())
   }
 
   try {
     await Users.read(email)
     // In case of success the user already exists and we must return an error
-    setStatusCode(400)
-    return {
-      error: 'User already exists'
-    }
+    throw new HandlerError(400, 'User already exists')
   } catch (err) {
-    // Only in case of an error we want to continue
-    // So we can safely continue without handling it.
+    // Only in case of an error from Users.read()
+    // we want to continue without throwing
+    if (err instanceof HandlerError) {
+      throw err
+    }
   }
 
   const hashedPassword = hashPassword(password)
@@ -231,10 +203,7 @@ handlers.createUser = async function ({ request, setStatusCode }) {
   try {
     await Users.create(email, userDoc)
   } catch (err) {
-    setStatusCode(500)
-    return {
-      error: 'Could not create user'
-    }
+    throw new HandlerError(500, 'Could not create user')
   }
 
   setStatusCode(201)
@@ -285,27 +254,18 @@ handlers.updateUser = async function ({ request, setStatusCode }) {
   })
 
   if (!validator.isValid()) {
-    setStatusCode(400)
-    return {
-      error: validator.getErrorMessage()
-    }
+    throw new HandlerError(400, validator.getErrorMessage())
   }
 
   const authenticated = await authorize(headers['auth-token'], email)
   if (!authenticated) {
-    setStatusCode(403)
-    return {
-      error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   try {
     await Users.read(email)
   } catch (err) {
-    setStatusCode(400)
-    return {
-      error: 'User does not exists'
-    }
+    throw new HandlerError(400, 'User does not exists')
   }
 
   const keysAllowedToUpdate = ['firstName', 'lastName', 'street', 'zip', 'city', 'password']
@@ -318,10 +278,7 @@ handlers.updateUser = async function ({ request, setStatusCode }) {
   }, {})
 
   if (Object.keys(fieldsToUpdate).length === 0) {
-    setStatusCode(400)
-    return {
-      error: 'You must provide at least one value to be updated'
-    }
+    throw new HandlerError(400, 'You must provide at least one value to be updated')
   }
 
   if (fieldsToUpdate.password) {
@@ -332,10 +289,7 @@ handlers.updateUser = async function ({ request, setStatusCode }) {
   try {
     await Users.update(email, fieldsToUpdate)
   } catch (err) {
-    setStatusCode(500)
-    return {
-      error: 'Could not update user'
-    }
+    throw new HandlerError(500, 'Could not update user')
   }
 }
 
@@ -352,36 +306,24 @@ handlers.deleteUser = async function ({ request, setStatusCode }) {
   })
 
   if (!validator.isValid()) {
-    setStatusCode(400)
-    return {
-      error: validator.getErrorMessage()
-    }
+    throw new HandlerError(400, validator.getErrorMessage())
   }
 
   const authenticated = await authorize(headers['auth-token'], email)
   if (!authenticated) {
-    setStatusCode(403)
-    return {
-      error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   try {
     await Users.read(email)
   } catch (err) {
-    setStatusCode(400)
-    return {
-      error: 'User does not exists'
-    }
+    throw new HandlerError(400, 'User does not exists')
   }
 
   try {
     await Users.delete(email)
   } catch (err) {
-    setStatusCode(500)
-    return {
-      error: 'Could not delete user'
-    }
+    throw new HandlerError(500, 'Could not delete user')
   }
 }
 

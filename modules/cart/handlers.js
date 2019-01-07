@@ -1,4 +1,5 @@
 const Data = require('../../lib/data')
+const HandlerError = require('../../lib/handler-error')
 const { ParamValidator } = require('../../lib/param-validator')
 const { authenticate } = require('../user/security')
 
@@ -14,25 +15,16 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
 
   const authenticated = await authenticate(authToken)
   if (!authenticated) {
-    setStatusCode(403)
-    return {
-      error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
-    setStatusCode(400)
-    return {
-      error: 'Payload must contain an array of menu items'
-    }
+    throw new HandlerError(400, 'Payload must contain an array of menu items')
   }
 
   // Just as a security measure. Why should one add more than 100 items?!
   if (cartItems.length > 100) {
-    setStatusCode(400)
-    return {
-      error: 'You may put at most 100 items on your cart'
-    }
+    throw new HandlerError(400, 'You may put at most 100 items on your cart')
   }
 
   let availableMenus
@@ -40,8 +32,7 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
   try {
     availableMenus = await Menus.list()
   } catch (err) {
-    console.error('Could not read menus')
-    return setStatusCode(500)
+    throw new HandlerError(500)
   }
 
   const itemsAreValid = cartItems.every(item => {
@@ -60,10 +51,7 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
   })
 
   if (!itemsAreValid) {
-    setStatusCode(400)
-    return {
-      error: 'One or more cart items are malformed'
-    }
+    throw new HandlerError(400, 'One or more cart items are malformed')
   }
 
   // Clean all items so they only contain valid keys
@@ -82,7 +70,7 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
     const token = await Tokens.read(authToken)
     userId = token.email
   } catch (err) {
-    return setStatusCode(500)
+    throw new HandlerError(500)
   }
 
   let cartJustCreated = false
@@ -95,12 +83,10 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
         await Carts.create(userId, cartObject)
         cartJustCreated = true
       } catch (err) {
-        console.error('Could not write cart')
-        return setStatusCode(500)
+        throw new HandlerError(500)
       }
     } else {
-      console.error('Could not read cart')
-      return setStatusCode(500)
+      throw new HandlerError(500)
     }
   }
 
@@ -108,8 +94,7 @@ handlers.replaceItems = async function ({ request, setStatusCode }) {
     try {
       await Carts.update(userId, cartObject)
     } catch (err) {
-      console.error('Could not update cart')
-      return setStatusCode(500)
+      throw new HandlerError(500)
     }
   }
 }

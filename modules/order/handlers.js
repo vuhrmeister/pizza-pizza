@@ -1,4 +1,5 @@
 const Data = require('../../lib/data')
+const HandlerError = require('../../lib/handler-error')
 const { createRandomString } = require('../../lib/helpers')
 const { Emitter, Events } = require('../events')
 const { authenticate } = require('../user/security')
@@ -17,17 +18,14 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
 
   const authenticated = await authenticate(authToken)
   if (!authenticated) {
-    setStatusCode(403)
-    return {
-      error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   let user
   try {
     user = await getUserForAuthToken(authToken)
   } catch (err) {
-    setStatusCode(500)
+    throw new HandlerError(403, 'Could not authenticate')
   }
 
   let cartItems
@@ -39,10 +37,7 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
       throw new Error()
     }
   } catch (err) {
-    setStatusCode(400)
-    return {
-      error: `There is nothing in your cart. Order can't be processed.`
-    }
+    throw new HandlerError(400, `There is nothing in your cart. Order can't be processed.`)
   }
 
   let orderValue = 0
@@ -53,10 +48,9 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
       orderValue += price * quantity
     }
   } catch (err) {
-    setStatusCode(400)
-    return {
-      error: 'Invalid item(s) on cart!'
-    }
+    // Validity of cart (items) should be already checked
+    // when adding them to it. So here it's an unexpected error.
+    throw new HandlerError(500)
   }
 
   const orderId = createRandomString(20)
@@ -74,7 +68,7 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
     }
     await Orders.create(orderId, orderData)
   } catch (err) {
-    setStatusCode(500)
+    throw new HandlerError(500)
   }
 
   try {
@@ -86,11 +80,7 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
     await charge(token, orderValueInCents, description)
   } catch (err) {
     console.log(err)
-    setStatusCode(500)
-    return {
-      orderId,
-      error: 'Payment failed'
-    }
+    throw new HandlerError(500, 'Payment failed')
   }
 
   try {
@@ -98,7 +88,9 @@ handlers.placeOrder = async function ({ request, setStatusCode }) {
   } catch (err) {
     // At this point we should refund the charged amount.
     // Since this is a demo case we leave it for now.
-    setStatusCode(500)
+    // TODO maybe this should not be an error but a notice
+    //      in the regular response
+    throw new HandlerError(500)
   }
 
   try {

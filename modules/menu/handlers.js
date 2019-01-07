@@ -1,4 +1,5 @@
 const Data = require('../../lib/data')
+const HandlerError = require('../../lib/handler-error')
 const { authenticate } = require('../user/security')
 
 const Menus = new Data('menus')
@@ -10,10 +11,7 @@ handlers.listMenus = async function ({ request, setStatusCode }) {
 
   const authenticated = await authenticate(headers['auth-token'])
   if (!authenticated) {
-    setStatusCode(403)
-    return {
-      error: 'Missing required `auth-token` in header, or `auth-token` is invalid'
-    }
+    throw new HandlerError(403, 'Missing required `auth-token` in header, or `auth-token` is invalid')
   }
 
   let menuIds = []
@@ -21,16 +19,14 @@ handlers.listMenus = async function ({ request, setStatusCode }) {
   try {
     menuIds = await Menus.list()
   } catch (err) {
-    console.log('Could not read list of menus')
-    setStatusCode(500)
+    throw new HandlerError(500, 'Could not get list of menus')
   }
 
   try {
     const menus = menuIds.map(id => Menus.read(id))
     return Promise.all(menus)
   } catch (err) {
-    console.log('Could not read menu')
-    setStatusCode(500)
+    throw new HandlerError(500, 'Could not get list of menus')
   }
 }
 
